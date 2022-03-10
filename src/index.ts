@@ -5,7 +5,7 @@ import { feedFileName } from './crawlers/crawl';
 import imagefap, { imagefapUrl } from './crawlers/imagefap';
 import { Logger } from './logger';
 
-const PORT = parseInt(process.env.PORT || '3000')
+const PORT = parseInt(process.env.PORT || '4001')
 
 const app = express()
 

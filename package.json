@@ -8,6 +8,7 @@
     "sanitize-filename": "^1.6.3",
     "ts-node": "^10.7.0",
     "tsconfig-paths": "^3.13.0",
+    "typescript": "^4.6.2",
     "valid-url": "^1.0.9"
   },
   "devDependencies": {
