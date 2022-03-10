@@ -1,20 +1,20 @@
 
 import { Attachment, Item } from "@json-feed-types/1_1";
-import { Feed } from "feed";
-import crawl, { getNumber, getText } from './crawl';
+import go from "../go";
+import { Feed, loadFeed } from "../feed";
+import crawl, { feedFileName, getNumber, getText, mergeItems } from './crawl';
 
 const getGalleryNodes = `#main > center > table > tbody > tr > td:nth-child(2) > div.blk_galleries >
 center > div > table > tbody > tr > td > table > tbody > *:not(:nth-child(1))`;
 
+export const imagefapUrl = (username: string) => `https://www.imagefap.com/profile/${username}`
+
 export default async (url: string) => crawl(url, async page => {
   const items: Partial<Item>[] = []
   const trList = await page.$$(getGalleryNodes)
-  console.log('Start');
 
   for (let index = 0; index < trList.length; index++) {
     const el = trList[index];
-    console.log(el);
-
     if (index % 2 === 0) {
       const title = await el.$eval('.blk_galleries', getText);
       const count = await el.$eval('font > span > center', getNumber);
@@ -48,18 +48,27 @@ export default async (url: string) => crawl(url, async page => {
   const urlSlices = url.split('/')
   const title = urlSlices[urlSlices.length - 1]
 
-  const feed: Feed = {
+  const feedMeta: Omit<Feed, 'items'> = {
     version: 'https://jsonfeed.org/version/1.1',
     title: `${title}'s Imagefap Profile`,
     home_page_url: url,
-    items: items as Item[],
     // Used for update policy
     last_updated: Date.now()
   }
 
-  console.log('FUCK');
+  // Merge feed objects
+  const storedFeed = await go(() => loadFeed(feedFileName(url)))
 
+  if (storedFeed.type === 'error') {
+    return {
+      ...feedMeta,
+      items
+    } as Feed;
+  }
 
   // await page.waitFor(1000000);
-  return feed;
+  return {
+    ...feedMeta,
+    items: mergeItems(storedFeed.data.items, items),
+  } as Feed;
 });

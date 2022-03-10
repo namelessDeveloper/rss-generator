@@ -1,5 +1,6 @@
+import { Item } from "@json-feed-types/1_1";
 import { Feed } from "feed";
-import puppeteer, { ElementHandle, EvaluateFn, Page } from "puppeteer";
+import puppeteer, { ElementHandle, EvaluateFn } from "puppeteer";
 
 export type Crawler = (url: string) => Promise<Feed>;
 
@@ -30,6 +31,20 @@ export default async function crawl(url: string, cb: CrawlerCallback): Promise<F
   }
 
   return response;
+}
+
+export const feedFileName = (url: string) => `${url}.json`
+
+export function mergeItems(stored: Item[], recent: Partial<Item>[]) {
+  const merged: Item[] = [...stored]
+  // Iterate the recent list until we find one we already have
+  for (const item of recent) {
+    if (stored[0].id === item.id) {
+      break;
+    }
+    merged.unshift(item as Item)
+  }
+  return merged;
 }
 
 export const getText = (el: Element) => el.textContent?.trim() || ''

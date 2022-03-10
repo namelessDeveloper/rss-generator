@@ -1,8 +1,9 @@
 import express from 'express';
-import { isWebUri } from 'valid-url'
-import getCrawler from './crawlers'
 import 'dotenv/config'
-import { initStructure, loadFeed, saveFeed } from './feed';
+import { initStructure, saveFeed } from './feed';
+import { feedFileName } from './crawlers/crawl';
+import imagefap, { imagefapUrl } from './crawlers/imagefap';
+import { Logger } from './logger';
 
 const PORT = parseInt(process.env.PORT || '3000')
 
@@ -10,25 +11,32 @@ const app = express()
 
 initStructure('../feeds/');
 
-app.get('*', async (req, res) => {
-  const feedUrl = req.originalUrl.slice(1);
-  if (!isWebUri(feedUrl)) {
-    throw new Error('URL is not valid')
+const logger = new Logger('logs.log');
+
+app.get('/imagefap/:profile', async (req, res) => {
+  logger.feedRequest('Imagefap', req.params.profile)
+
+  const feedUrl = imagefapUrl(req.params.profile);
+  const feed = {
+    feed_url: `${req.protocol}://${req.hostname}/${feedUrl}`,
+    ...await imagefap(feedUrl)
   }
 
-  const feedFilename = `${feedUrl}.json`
+  setImmediate(() => saveFeed(feedFileName(feedUrl), feed));
 
-  const feed = await getCrawler(feedUrl, {
-    feed_url: `${req.protocol}://${req.hostname}/${feedUrl}`,
-  })
-
-  setImmediate(() => saveFeed(feedFilename, feed));
-
-  console.log(`Feed requested: ${feedUrl}`);
   res.json(feed)
 })
 
-app.listen(PORT, () => {
-  console.log(`Started listening on port ${PORT}`)
+const server = app.listen(PORT, () => {
+  logger.startup(PORT)
 })
 
+function gracefulShutdown() {
+  logger.shutdown()
+  server.close(() => {
+    console.log('HTTP server closed')
+  })
+}
+
+process.on('SIGINT', gracefulShutdown)
+// process.on('SIGTERM', gracefulShutdown)

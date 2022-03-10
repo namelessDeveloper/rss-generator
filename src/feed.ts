@@ -16,12 +16,16 @@ type BaseExtension = {
 export type Feed<E extends ExtensionMap = {}> = JsonFeed<E & BaseExtension>
 
 export function loadFeed(path: string): Feed {
-  const file = readFileSync(resolve(BASE_PATH, sanitize(path)), { encoding: 'utf-8' })
-  return JSON.parse(file);
+  try {
+    const file = readFileSync(resolve(BASE_PATH, sanitize(path)), { encoding: 'utf-8' })
+    return JSON.parse(file);
+  } catch (error) {
+    throw new Error('Feed doesn\'t exist yet')
+  }
 }
 
 export function saveFeed(path: string, data: Feed) {
-  return writeFileSync(resolve(BASE_PATH, sanitize(path)), JSON.stringify(data));
+  return writeFileSync(resolve(BASE_PATH, sanitize(path)), JSON.stringify(data, null, 2));
 }
 
 export function initStructure(path: string) {
