@@ -1,5 +1,6 @@
 import { Item } from "@json-feed-types/1_1";
 import { Feed } from "feed";
+import { DateTime, Interval } from "luxon";
 import puppeteer, { ElementHandle, EvaluateFn } from "puppeteer";
 
 export type Crawler = (url: string) => Promise<Feed>;
@@ -35,14 +36,16 @@ export default async function crawl(url: string, cb: CrawlerCallback): Promise<F
 
 export const feedFileName = (url: string) => `${url}.json`
 
-export function mergeItems(stored: Item[], recent: Partial<Item>[]) {
+export function mergeItems(stored: Item[], recent: Partial<Item>[]): Item[] {
+  console.log(stored.map(i => i.date_published), recent.map(i => i.date_published));
+
   const merged: Item[] = [...stored]
-  // Iterate the recent list until we find one we already have
+  const latestStored = DateTime.fromISO(merged[0].date_published as string)
   for (const item of recent) {
-    if (stored[0].id === item.id) {
-      break;
+    const itemDate = DateTime.fromISO(item.date_published as string)
+    if (itemDate > latestStored) {
+      merged.unshift(item as Item)
     }
-    merged.unshift(item as Item)
   }
   return merged;
 }

@@ -3,6 +3,7 @@ import { Attachment, Item } from "@json-feed-types/1_1";
 import go from "../go";
 import { Feed, loadFeed } from "../feed";
 import crawl, { feedFileName, getNumber, getText, mergeItems } from './crawl';
+import { DateTime } from "luxon";
 
 const getGalleryNodes = `#main > center > table > tbody > tr > td:nth-child(2) > div.blk_galleries >
 center > div > table > tbody > tr > td > table > tbody > *:not(:nth-child(1))`;
@@ -10,6 +11,7 @@ center > div > table > tbody > tr > td > table > tbody > *:not(:nth-child(1))`;
 export const imagefapUrl = (username: string) => `https://www.imagefap.com/profile/${username}`
 
 export default async (url: string) => crawl(url, async page => {
+  // Get items
   const items: Partial<Item>[] = []
   const trList = await page.$$(getGalleryNodes)
 
@@ -19,13 +21,11 @@ export default async (url: string) => crawl(url, async page => {
       const title = await el.$eval('.blk_galleries', getText);
       const count = await el.$eval('font > span > center', getNumber);
       const dateString = await el.$eval('.blk_galleries:nth-child(4) center', getText);
-      const date = new Date(dateString)
-      const date_published = date.toUTCString();
-      //@ts-ignore
-      const id = (date / 1000).toFixed();
+      const date = DateTime.fromJSDate(new Date(dateString))
+      const date_published = date.toISO()
       items.push({
         title,
-        id,
+        id: date_published,
         date_published,
         summary: `${count} images`
       })
@@ -44,6 +44,8 @@ export default async (url: string) => crawl(url, async page => {
     }
 
   }
+
+  // Prepare Feed object and update
 
   const urlSlices = url.split('/')
   const title = urlSlices[urlSlices.length - 1]
